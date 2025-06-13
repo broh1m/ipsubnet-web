@@ -258,7 +258,7 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("3 per hour")
+@limiter.limit("10 per minute")
 def register():
     if request.method == 'POST':
         try:
@@ -485,16 +485,16 @@ def get_progress(task_id):
     })
     return jsonify(progress_data)
 
-@app.route('/landing')
-def landing():
+@app.route('/home')
+def home():
     return render_template('landing.html')
 
 @app.route('/')
 def root():
-    return redirect(url_for('landing'))
+    return redirect(url_for('home'))
 
 @app.route('/calculator', methods=['GET'])
-def home():
+def calculator():
     return render_template('index.html', 
                          network_ip='', 
                          num_segments='', 

@@ -11,7 +11,7 @@
                 This web application helps network administrators and IT professionals easily divide a network into smaller, more manageable segments while maintaining proper IP addressing and VLAN configuration.
             </p>
             <div class="mb-4 animate__animated animate__fadeInUp">
-                <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg me-2">
+                <a href="{{ url_for('calculator') }}" class="btn btn-primary btn-lg me-2">
                     <i class="bi bi-calculator me-1"></i>Start Calculating
                 </a>
                 <a href="{{ url_for('register') }}" class="btn btn-outline-success btn-lg">
@@ -48,4 +48,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/canvas-network-animation.js') }}"></script>
 {% endblock %} 
