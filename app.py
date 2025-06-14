@@ -49,7 +49,12 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
 def escapejs_filter(s):
     if s is None:
         return ''
-    return str(s).replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+    return str(s).replace('\\', '\\\\').replace("'", "\\''").replace('"', '\\"').replace('\n', '\\n')
+
+# Inject global data into all templates for cache busting
+@app.context_processor
+def inject_global_data():
+    return dict(cache_buster=int(time.time()))
 
 # Security configurations
 app.config['SESSION_COOKIE_SECURE'] = True

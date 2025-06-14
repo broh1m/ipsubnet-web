@@ -147,12 +147,14 @@
         }
 
         // Ensure the modal dismisses on form submission
-        document.getElementById('globalDeleteForm').addEventListener('submit', function() {
-            const modalElement = document.getElementById('globalDeleteModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalElement);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('globalDeleteForm').addEventListener('submit', function() {
+                const modalElement = document.getElementById('globalDeleteModal');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            });
         });
     </script>
     {% block scripts %}{% endblock %}
@@ -182,5 +184,8 @@
             </div>
         </div>
     </div>
+
+    <!-- Load animation script last -->
+    <script src="{{ url_for('static', filename='js/canvas-network-animation.js', q=cache_buster) }}"></script>
 </body>
 </html> 
