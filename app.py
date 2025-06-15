@@ -318,11 +318,13 @@ def register():
             except SQLAlchemyError as e:
                 db.session.rollback()
                 app.logger.error(f"Database error during registration: {str(e)}")
+                print(f"Database error during registration (console output): {str(e)}") # Added for debugging
                 flash('An error occurred during registration. Please try again.', 'error')
                 return redirect(url_for('register'))
                 
         except Exception as e:
-            app.logger.error(f"Unexpected error during registration: {str(e)}")
+            app.logger.error(f"Unexpected error during registration: {str(e)}", exc_info=True)
+            print(f"Unexpected error during registration (console output): {str(e)}") # Added for debugging
             flash('An unexpected error occurred. Please try again.', 'error')
             return redirect(url_for('register'))
             
