@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block title %}Welcome - NetMaster{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -44,6 +46,11 @@
             </div>
             <div class="mt-5 animate__animated animate__fadeIn">
                 <p class="text-muted">Subnet Calculator with VLAN is designed to make network planning, documentation, and management simple and efficient for everyone from students to professionals.</p>
+                <div class="mt-3">
+                    <a href="{{ url_for('about') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-info-circle me-1"></i>Learn More About Us
+                    </a>
+                </div>
             </div>
         </div>
     </div>

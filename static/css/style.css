@@ -534,4 +534,109 @@ a {
 
 a:hover {
     color: #0a58ca;
+}
+
+/* Dropdown specific styles */
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    min-width: 10rem;
+    padding: 0.5rem 0;
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-light);
+    text-align: left;
+    list-style: none;
+    background-color: var(--card-bg-light);
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+}
+
+html[data-bs-theme="dark"] .dropdown-menu {
+    background-color: var(--card-bg-dark);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-dark);
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: var(--text-light);
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    transition: all 0.2s ease-in-out;
+}
+
+html[data-bs-theme="dark"] .dropdown-item {
+    color: var(--text-dark);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    color: #fff;
+    background-color: var(--primary-color);
+    text-decoration: none;
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+    color: #fff;
+    background-color: var(--primary-color);
+    text-decoration: none;
+}
+
+.dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+html[data-bs-theme="dark"] .dropdown-divider {
+    border-top-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Ensure dropdown is above other elements */
+.navbar .dropdown-menu {
+    z-index: 1030;
+}
+
+/* Fix dropdown positioning */
+.navbar-nav .dropdown-menu {
+    position: absolute;
+    right: 0;
+    left: auto;
+}
+
+/* Ensure dropdown toggle is clickable */
+.navbar .dropdown-toggle {
+    cursor: pointer;
+    position: relative;
+}
+
+/* Add hover effect to dropdown items */
+.dropdown-item i {
+    width: 1.25rem;
+    text-align: center;
+}
+
+/* Ensure dropdown menu is visible when shown */
+.dropdown-menu.show {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
 } 

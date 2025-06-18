@@ -20,6 +20,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import logging
 import sys
+from flask_bcrypt import Bcrypt
 
 # Custom exceptions for subnet calculation
 class SubnetCalculationError(Exception):
@@ -45,6 +46,9 @@ class NetworkSizeError(SubnetCalculationError):
 app = Flask(__name__, static_folder='static')
 # Use environment variable for secret key, fallback to generated key
 app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
+
+# Initialize Bcrypt
+bcrypt = Bcrypt(app)
 
 # Configure logging to output to console during development
 if app.debug:
@@ -100,6 +104,7 @@ db = SQLAlchemy(app)
 # Create database tables
 with app.app_context():
     db.create_all()
+    print(f"Database path: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Store calculation progress
 calculation_progress = {}
@@ -199,10 +204,10 @@ class User(UserMixin, db.Model):
     notes = db.relationship('Note', backref='author', lazy=True)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return bcrypt.check_password_hash(self.password_hash, password)
 
 class Note(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -261,7 +266,7 @@ def login():
         
         if user and user.check_password(password):
             login_user(user)
-            return redirect(url_for('notes'))
+            return redirect(url_for('home'))
         flash('Invalid username or password', 'error')
     return render_template('login.html')
 
@@ -737,6 +742,10 @@ def debug_notes():
         'updated_at': note.updated_at.isoformat()
     } for note in notes])
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 @app.route('/notes/from_calculator', methods=['POST'])
 @login_required
 def add_note_from_calculator():
@@ -754,6 +763,120 @@ def add_note_from_calculator():
     except Exception as e:
         app.logger.error(f"Error creating note from calculator: {str(e)}")
         return jsonify({'status': 'error', 'message': 'Failed to create note.'}), 500
+
+@app.route('/account')
+@login_required
+def account():
+    return render_template('account.html')
+
+@app.route('/update_profile', methods=['POST'])
+@login_required
+@limiter.limit("10 per minute")
+def update_profile():
+    try:
+        username = sanitize_input(request.form.get('username', '').strip())
+        email = sanitize_input(request.form.get('email', '').strip())
+        
+        # Validate username
+        if not username or len(username) < 3 or len(username) > 80:
+            flash('Username must be between 3 and 80 characters long', 'error')
+            return redirect(url_for('account'))
+        
+        # Validate email
+        if not email or '@' not in email or '.' not in email:
+            flash('Please enter a valid email address', 'error')
+            return redirect(url_for('account'))
+        
+        # Check if username exists (excluding current user)
+        existing_user = User.query.filter(User.username == username, User.id != current_user.id).first()
+        if existing_user:
+            flash('Username already exists', 'error')
+            return redirect(url_for('account'))
+        
+        # Check if email exists (excluding current user)
+        existing_email = User.query.filter(User.email == email, User.id != current_user.id).first()
+        if existing_email:
+            flash('Email already registered', 'error')
+            return redirect(url_for('account'))
+        
+        # Update user profile
+        current_user.username = username
+        current_user.email = email
+        db.session.commit()
+        
+        flash('Profile updated successfully', 'success')
+        return redirect(url_for('account'))
+        
+    except Exception as e:
+        app.logger.error(f"Error updating profile: {str(e)}")
+        flash('An error occurred while updating your profile', 'error')
+        return redirect(url_for('account'))
+
+@app.route('/change_password', methods=['POST'])
+@login_required
+@limiter.limit("10 per minute")
+def change_password():
+    try:
+        current_password = request.form.get('current_password', '').strip()
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        # Validate current password
+        if not current_user.check_password(current_password):
+            flash('Current password is incorrect', 'error')
+            return redirect(url_for('account'))
+        
+        # Validate new password
+        if not new_password or len(new_password) < 8:
+            flash('New password must be at least 8 characters long', 'error')
+            return redirect(url_for('account'))
+        
+        # Check if new passwords match
+        if new_password != confirm_password:
+            flash('New passwords do not match', 'error')
+            return redirect(url_for('account'))
+        
+        # Update password
+        current_user.set_password(new_password)
+        db.session.commit()
+        
+        flash('Password changed successfully', 'success')
+        return redirect(url_for('account'))
+        
+    except Exception as e:
+        app.logger.error(f"Error changing password: {str(e)}")
+        flash('An error occurred while changing your password', 'error')
+        return redirect(url_for('account'))
+
+@app.route('/delete_account', methods=['POST'])
+@login_required
+@limiter.limit("5 per minute")
+def delete_account():
+    try:
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        # Validate password
+        if not current_user.check_password(confirm_password):
+            flash('Password is incorrect', 'error')
+            return redirect(url_for('account'))
+        
+        # Delete user's notes
+        Note.query.filter_by(user_id=current_user.id).delete()
+        
+        # Delete user
+        db.session.delete(current_user)
+        db.session.commit()
+        
+        # Logout user
+        logout_user()
+        
+        flash('Your account has been deleted successfully', 'success')
+        return redirect(url_for('login'))
+        
+    except Exception as e:
+        app.logger.error(f"Error deleting account: {str(e)}")
+        flash('An error occurred while deleting your account', 'error')
+        return redirect(url_for('account'))
 
 if __name__ == '__main__':
     with app.app_context():
