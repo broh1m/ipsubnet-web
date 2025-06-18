@@ -21,6 +21,7 @@ from flask_limiter.util import get_remote_address
 import logging
 import sys
 from flask_bcrypt import Bcrypt
+from sqlalchemy import text
 
 # Custom exceptions for subnet calculation
 class SubnetCalculationError(Exception):
@@ -80,7 +81,7 @@ app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour
 csrf = CSRFProtect(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login'  # type: ignore
 login_manager.login_message = 'Please log in to access this page.'
 
 # Initialize rate limiter
@@ -139,7 +140,7 @@ def transaction():
     """Enhanced transaction context manager with timeout and error handling"""
     try:
         # Set statement timeout for this transaction
-        db.session.execute('PRAGMA busy_timeout = 30000')  # 30 seconds timeout
+        db.session.execute(text('PRAGMA busy_timeout = 30000'))
         yield
         db.session.commit()
     except SQLAlchemyError as e:
@@ -159,7 +160,7 @@ def check_db_health():
     """Check database connection health"""
     try:
         # Try to execute a simple query
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         return True
     except Exception as e:
         app.logger.error(f"Database health check failed: {str(e)}")
@@ -185,7 +186,7 @@ class DatabaseConnectionManager:
     def execute_with_timeout(query, timeout=30):
         """Execute a query with a timeout"""
         try:
-            db.session.execute('PRAGMA busy_timeout = ?', (timeout * 1000,))
+            db.session.execute(text('PRAGMA busy_timeout = :timeout'), {'timeout': timeout * 1000})
             return db.session.execute(query)
         except Exception as e:
             app.logger.error(f"Query execution failed: {str(e)}")
@@ -203,6 +204,10 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     notes = db.relationship('Note', backref='author', lazy=True)
 
+    def __init__(self, username, email):
+        self.username = username
+        self.email = email
+
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
@@ -216,6 +221,11 @@ class Note(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=get_local_time, index=True)
     updated_at = db.Column(db.DateTime(timezone=True), default=get_local_time, onupdate=get_local_time, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __init__(self, title, content, user_id):
+        self.title = title
+        self.content = content
+        self.user_id = user_id
 
     def __repr__(self):
         return f'<Note {self.id}>'
@@ -788,13 +798,13 @@ def update_profile():
             return redirect(url_for('account'))
         
         # Check if username exists (excluding current user)
-        existing_user = User.query.filter(User.username == username, User.id != current_user.id).first()
+        existing_user = User.query.filter(getattr(User, "username") == username, getattr(User, "id") != current_user.id).first()
         if existing_user:
             flash('Username already exists', 'error')
             return redirect(url_for('account'))
         
         # Check if email exists (excluding current user)
-        existing_email = User.query.filter(User.email == email, User.id != current_user.id).first()
+        existing_email = User.query.filter(getattr(User, "email") == email, getattr(User, "id") != current_user.id).first()
         if existing_email:
             flash('Email already registered', 'error')
             return redirect(url_for('account'))
