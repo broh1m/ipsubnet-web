@@ -86,10 +86,10 @@ login_manager.login_message = 'Please log in to access this page.'
 
 # Initialize rate limiter
 limiter = Limiter(
-    app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    storage_uri="redis://redis-16291.c321.us-east-1-2.ec2.redns.redis-cloud.com:16291"
 )
+limiter.init_app(app)
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///notes.db'

@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-5 position-relative">
+    <!-- Theme Toggle Button -->
+    <button class="btn btn-outline-secondary theme-switch" onclick="toggleTheme()" title="Toggle Dark Mode">
+        <i class="bi bi-moon-fill"></i>
+    </button>
+    
     <div class="row justify-content-center">
         <div class="col-lg-15">
             <div class="card p-4 animate__animated animate__fadeIn">
@@ -303,7 +308,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (data.progress === 100) {
                         clearInterval(intervalId);
                         updateResultsTable(data.results, vlanMode);
-                        progressBarContainer.style.display = 'none';
+                        // Only hide the progress bar after results are rendered and not empty
+                        if (data.results && data.results.length > 0) {
+                            progressBarContainer.style.display = 'none';
+                        }
                     } else if (data.results && data.results.length > 0) {
                         updateResultsTable(data.results, vlanMode);
                     }

@@ -15,12 +15,12 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
             <a class="navbar-brand" href="{{ url_for('home') }}">
                 <i class="bi bi-diagram-3-fill me-1"></i>NetMaster
             </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
@@ -61,10 +61,6 @@
         </div>
     </nav>
 
-    <button class="btn btn-outline-secondary theme-switch position-fixed top-0 end-0 m-3" onclick="toggleTheme()" title="Toggle Dark Mode">
-        <i class="bi bi-moon-fill"></i>
-    </button>
-
     <div class="content-wrapper">
         {% block content %}{% endblock %}
     </div>
@@ -98,7 +94,9 @@
             html.setAttribute('data-bs-theme', theme);
             
             const icon = document.querySelector('.theme-switch i');
-            icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            if (icon) {
+                icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            }
             
             localStorage.setItem('theme', theme);
         }
@@ -139,43 +137,8 @@
             });
         });
     </script>
-    <script>
-        function dismissModal(element) {
-            const modalInstance = bootstrap.Modal.getInstance(element);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
-        }
-    </script>
-    <script>
-        // Function to show the global delete modal
-        function showDeleteModal(noteId, noteTitle) {
-            const deleteForm = document.getElementById('globalDeleteForm');
-            const deleteNoteTitle = document.getElementById('deleteNoteTitle');
-            
-            deleteForm.action = `/notes/delete/${noteId}`;
-            deleteNoteTitle.textContent = `"${noteTitle}"`;
-            
-            const globalDeleteModal = new bootstrap.Modal(document.getElementById('globalDeleteModal'));
-            globalDeleteModal.show();
-        }
 
-        // Ensure the modal dismisses on form submission
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('globalDeleteForm').addEventListener('submit', function() {
-                const modalElement = document.getElementById('globalDeleteModal');
-                const modalInstance = bootstrap.Modal.getInstance(modalElement);
-                if (modalInstance) {
-                    modalInstance.hide();
-                }
-            });
-        });
-    </script>
-    <!-- Load animation script last -->
-    <script src="{{ url_for('static', filename='js/canvas-network-animation.js', q=cache_buster) }}"></script>
-    {% block scripts %}{% endblock %}
-
-    <!-- Global Delete Confirmation Modal -->
+    <!-- Global Delete Modal -->
     <div class="modal fade" id="globalDeleteModal" tabindex="-1" aria-labelledby="globalDeleteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark-subtle text-emphasis-dark border border-secondary">

@@ -56,9 +56,9 @@ html[data-bs-theme="dark"] body {
 }
 
 .theme-switch {
-    position: fixed;
-    top: 0.5rem;
-    right: 0.5rem;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
     z-index: 1000;
     border-radius: 50%;
     width: 40px;
@@ -71,7 +71,6 @@ html[data-bs-theme="dark"] body {
     background: var(--card-bg-light);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(0,0,0,0.1);
-    margin: 0.5rem;
 }
 
 html[data-bs-theme="dark"] .theme-switch {
@@ -86,6 +85,29 @@ html[data-bs-theme="dark"] .theme-switch {
 
 .theme-switch i {
     font-size: 1.2rem;
+}
+
+/* Ensure content doesn't overlap with theme toggle */
+.container.position-relative {
+    padding-top: 4rem;
+}
+
+/* Responsive adjustments for theme toggle */
+@media (max-width: 768px) {
+    .theme-switch {
+        top: 0.5rem;
+        right: 0.5rem;
+        width: 35px;
+        height: 35px;
+    }
+    
+    .theme-switch i {
+        font-size: 1rem;
+    }
+    
+    .container.position-relative {
+        padding-top: 3rem;
+    }
 }
 
 .card {
