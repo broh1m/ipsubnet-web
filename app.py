@@ -18,6 +18,10 @@ import bleach
 from functools import wraps
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+import logging
+import sys
+from flask_bcrypt import Bcrypt
+from sqlalchemy import text
 
 # Custom exceptions for subnet calculation
 class SubnetCalculationError(Exception):
@@ -44,12 +48,27 @@ app = Flask(__name__, static_folder='static')
 # Use environment variable for secret key, fallback to generated key
 app.secret_key = os.environ.get('FLASK_SECRET_KEY') or secrets.token_hex(32)
 
+# Initialize Bcrypt
+bcrypt = Bcrypt(app)
+
+# Configure logging to output to console during development
+if app.debug:
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setLevel(logging.DEBUG)
+    app.logger.addHandler(handler)
+    app.logger.setLevel(logging.DEBUG)
+
 # Add escapejs filter
 @app.template_filter('escapejs')
 def escapejs_filter(s):
     if s is None:
         return ''
-    return str(s).replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+    return str(s).replace('\\', '\\\\').replace("'", "\\''").replace('"', '\\"').replace('\n', '\\n')
+
+# Inject global data into all templates for cache busting
+@app.context_processor
+def inject_global_data():
+    return dict(cache_buster=int(time.time()))
 
 # Security configurations
 app.config['SESSION_COOKIE_SECURE'] = True
@@ -62,15 +81,15 @@ app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour
 csrf = CSRFProtect(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'login'  # type: ignore
 login_manager.login_message = 'Please log in to access this page.'
 
 # Initialize rate limiter
 limiter = Limiter(
-    app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
+    storage_uri="redis://redis-16291.c321.us-east-1-2.ec2.redns.redis-cloud.com:16291"
 )
+limiter.init_app(app)
 
 # Database configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///notes.db'
@@ -86,6 +105,7 @@ db = SQLAlchemy(app)
 # Create database tables
 with app.app_context():
     db.create_all()
+    print(f"Database path: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 # Store calculation progress
 calculation_progress = {}
@@ -120,7 +140,7 @@ def transaction():
     """Enhanced transaction context manager with timeout and error handling"""
     try:
         # Set statement timeout for this transaction
-        db.session.execute('PRAGMA busy_timeout = 30000')  # 30 seconds timeout
+        db.session.execute(text('PRAGMA busy_timeout = 30000'))
         yield
         db.session.commit()
     except SQLAlchemyError as e:
@@ -140,7 +160,7 @@ def check_db_health():
     """Check database connection health"""
     try:
         # Try to execute a simple query
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         return True
     except Exception as e:
         app.logger.error(f"Database health check failed: {str(e)}")
@@ -166,7 +186,7 @@ class DatabaseConnectionManager:
     def execute_with_timeout(query, timeout=30):
         """Execute a query with a timeout"""
         try:
-            db.session.execute('PRAGMA busy_timeout = ?', (timeout * 1000,))
+            db.session.execute(text('PRAGMA busy_timeout = :timeout'), {'timeout': timeout * 1000})
             return db.session.execute(query)
         except Exception as e:
             app.logger.error(f"Query execution failed: {str(e)}")
@@ -188,11 +208,15 @@ class User(UserMixin, db.Model):
     auto_save_results = db.Column(db.String(20), default='ask')
     notes = db.relationship('Note', backref='author', lazy=True)
 
+    def __init__(self, username, email):
+        self.username = username
+        self.email = email
+
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return bcrypt.check_password_hash(self.password_hash, password)
 
 class Note(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -201,6 +225,11 @@ class Note(db.Model):
     created_at = db.Column(db.DateTime(timezone=True), default=get_local_time, index=True)
     updated_at = db.Column(db.DateTime(timezone=True), default=get_local_time, onupdate=get_local_time, index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    def __init__(self, title, content, user_id):
+        self.title = title
+        self.content = content
+        self.user_id = user_id
 
     def __repr__(self):
         return f'<Note {self.id}>'
@@ -251,7 +280,7 @@ def login():
         
         if user and user.check_password(password):
             login_user(user)
-            return redirect(url_for('notes'))
+            return redirect(url_for('home'))
         flash('Invalid username or password', 'error')
     return render_template('login.html')
 
@@ -262,7 +291,7 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/register', methods=['GET', 'POST'])
-@limiter.limit("3 per hour")
+@limiter.limit("10 per minute")
 def register():
     if request.method == 'POST':
         try:
@@ -308,11 +337,13 @@ def register():
             except SQLAlchemyError as e:
                 db.session.rollback()
                 app.logger.error(f"Database error during registration: {str(e)}")
+                print(f"Database error during registration (console output): {str(e)}") # Added for debugging
                 flash('An error occurred during registration. Please try again.', 'error')
                 return redirect(url_for('register'))
                 
         except Exception as e:
-            app.logger.error(f"Unexpected error during registration: {str(e)}")
+            app.logger.error(f"Unexpected error during registration: {str(e)}", exc_info=True)
+            print(f"Unexpected error during registration (console output): {str(e)}") # Added for debugging
             flash('An unexpected error occurred. Please try again.', 'error')
             return redirect(url_for('register'))
             
@@ -330,6 +361,7 @@ def notes():
         return render_template('notes.html', notes=notes, pagination=pagination)
     except Exception as e:
         app.logger.error(f"Error fetching notes: {str(e)}")
+        print(f"Error fetching notes (console output): {str(e)}") # Added for debugging
         flash('An error occurred while fetching notes', 'error')
         return render_template('notes.html', notes=[], pagination=None)
 
@@ -352,6 +384,7 @@ def create_note():
         return redirect(url_for('notes'))
     except Exception as e:
         app.logger.error(f"Error creating note: {str(e)}")
+        print(f"Error creating note (console output): {str(e)}") # Added for debugging
         flash('An error occurred while creating the note', 'error')
         return redirect(url_for('notes'))
 
@@ -489,16 +522,16 @@ def get_progress(task_id):
     })
     return jsonify(progress_data)
 
-@app.route('/landing')
-def landing():
+@app.route('/home')
+def home():
     return render_template('landing.html')
 
 @app.route('/')
 def root():
-    return redirect(url_for('landing'))
+    return redirect(url_for('home'))
 
 @app.route('/calculator', methods=['GET'])
-def home():
+def calculator():
     return render_template('index.html', 
                          network_ip='', 
                          num_segments='', 
@@ -723,6 +756,10 @@ def debug_notes():
         'updated_at': note.updated_at.isoformat()
     } for note in notes])
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 @app.route('/notes/from_calculator', methods=['POST'])
 @login_required
 def add_note_from_calculator():
@@ -741,6 +778,7 @@ def add_note_from_calculator():
         app.logger.error(f"Error creating note from calculator: {str(e)}")
         return jsonify({'status': 'error', 'message': 'Failed to create note.'}), 500
 
+<<<<<<< HEAD
 @app.route('/update_theme', methods=['POST'])
 @login_required
 def update_theme():
@@ -779,6 +817,121 @@ def terms():
 @app.context_processor
 def inject_now():
     return {'now': datetime.now}
+=======
+@app.route('/account')
+@login_required
+def account():
+    return render_template('account.html')
+
+@app.route('/update_profile', methods=['POST'])
+@login_required
+@limiter.limit("10 per minute")
+def update_profile():
+    try:
+        username = sanitize_input(request.form.get('username', '').strip())
+        email = sanitize_input(request.form.get('email', '').strip())
+        
+        # Validate username
+        if not username or len(username) < 3 or len(username) > 80:
+            flash('Username must be between 3 and 80 characters long', 'error')
+            return redirect(url_for('account'))
+        
+        # Validate email
+        if not email or '@' not in email or '.' not in email:
+            flash('Please enter a valid email address', 'error')
+            return redirect(url_for('account'))
+        
+        # Check if username exists (excluding current user)
+        existing_user = User.query.filter(getattr(User, "username") == username, getattr(User, "id") != current_user.id).first()
+        if existing_user:
+            flash('Username already exists', 'error')
+            return redirect(url_for('account'))
+        
+        # Check if email exists (excluding current user)
+        existing_email = User.query.filter(getattr(User, "email") == email, getattr(User, "id") != current_user.id).first()
+        if existing_email:
+            flash('Email already registered', 'error')
+            return redirect(url_for('account'))
+        
+        # Update user profile
+        current_user.username = username
+        current_user.email = email
+        db.session.commit()
+        
+        flash('Profile updated successfully', 'success')
+        return redirect(url_for('account'))
+        
+    except Exception as e:
+        app.logger.error(f"Error updating profile: {str(e)}")
+        flash('An error occurred while updating your profile', 'error')
+        return redirect(url_for('account'))
+
+@app.route('/change_password', methods=['POST'])
+@login_required
+@limiter.limit("10 per minute")
+def change_password():
+    try:
+        current_password = request.form.get('current_password', '').strip()
+        new_password = request.form.get('new_password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        # Validate current password
+        if not current_user.check_password(current_password):
+            flash('Current password is incorrect', 'error')
+            return redirect(url_for('account'))
+        
+        # Validate new password
+        if not new_password or len(new_password) < 8:
+            flash('New password must be at least 8 characters long', 'error')
+            return redirect(url_for('account'))
+        
+        # Check if new passwords match
+        if new_password != confirm_password:
+            flash('New passwords do not match', 'error')
+            return redirect(url_for('account'))
+        
+        # Update password
+        current_user.set_password(new_password)
+        db.session.commit()
+        
+        flash('Password changed successfully', 'success')
+        return redirect(url_for('account'))
+        
+    except Exception as e:
+        app.logger.error(f"Error changing password: {str(e)}")
+        flash('An error occurred while changing your password', 'error')
+        return redirect(url_for('account'))
+
+@app.route('/delete_account', methods=['POST'])
+@login_required
+@limiter.limit("5 per minute")
+def delete_account():
+    try:
+        confirm_password = request.form.get('confirm_password', '').strip()
+        
+        # Validate password
+        if not current_user.check_password(confirm_password):
+            flash('Password is incorrect', 'error')
+            return redirect(url_for('account'))
+        
+        # Delete user's notes
+        Note.query.filter_by(user_id=current_user.id).delete()
+        
+        # Delete user
+        db.session.delete(current_user)
+        db.session.commit()
+        
+        # Logout user
+        logout_user()
+        
+        flash('Your account has been deleted successfully', 'success')
+        return redirect(url_for('login'))
+        
+    except Exception as e:
+        app.logger.error(f"Error deleting account: {str(e)}")
+        flash('An error occurred while deleting your account', 'error')
+        return redirect(url_for('account'))
+>>>>>>> 45ab9c39cce14fa69cdc7ea60e97a17645a5064a
 
 if __name__ == '__main__':
     with app.app_context():

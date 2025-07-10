@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
+<<<<<<< HEAD
 </head>
 <body>
     <!-- Remove all global CSRF token inputs. Only forms should have CSRF tokens. -->
@@ -58,6 +59,52 @@
                     </li>
                     <li class="nav-item">
                         <a class="btn btn-primary rounded-pill px-3" href="{{ url_for('register') }}">Register</a>
+=======
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                <i class="bi bi-diagram-3-fill me-1"></i>NetMaster
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('calculator') }}">
+                            <i class="bi bi-calculator me-1"></i>Calculator
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('notes') }}">
+                            <i class="bi bi-journal-text me-1"></i>Notes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('account') }}">
+                            <i class="bi bi-gear me-1"></i>Account Settings
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="bi bi-box-arrow-right me-1"></i>Logout
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register') }}">
+                            <i class="bi bi-person-plus me-1"></i>Register
+                        </a>
+>>>>>>> 45ab9c39cce14fa69cdc7ea60e97a17645a5064a
                     </li>
                     {% endif %}
                     <!-- Theme switch toggle -->
@@ -82,8 +129,10 @@
         {% block content %}{% endblock %}
     </div>
 
+    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+<<<<<<< HEAD
         // User preferences from database
         {% if current_user.is_authenticated %}
         const userTheme = '{{ current_user.theme }}';
@@ -98,12 +147,41 @@
         const userDefaultCalculationMode = undefined;
         const userAutoSaveResults = undefined;
         {% endif %}
+=======
+        // Simple dropdown initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the dropdown button
+            const dropdownButton = document.getElementById('accountDropdown');
+            if (dropdownButton) {
+                // Create a new Bootstrap dropdown instance
+                const dropdown = new bootstrap.Dropdown(dropdownButton);
+                
+                // Add click event listeners to dropdown items
+                const dropdownItems = document.querySelectorAll('.dropdown-item');
+                dropdownItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        // Hide the dropdown when an item is clicked
+                        dropdown.hide();
+                    });
+                });
+            }
+        });
+>>>>>>> 45ab9c39cce14fa69cdc7ea60e97a17645a5064a
     </script>
     <script>
         // Theme toggle functionality
         function setTheme(theme) {
             const html = document.documentElement;
             html.setAttribute('data-bs-theme', theme);
+<<<<<<< HEAD
+=======
+            
+            const icon = document.querySelector('.theme-switch i');
+            if (icon) {
+                icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+            }
+            
+>>>>>>> 45ab9c39cce14fa69cdc7ea60e97a17645a5064a
             localStorage.setItem('theme', theme);
             // Sync the switch state
             const switchInput = document.getElementById('themeSwitch');
@@ -177,31 +255,19 @@
             document.querySelectorAll('.local-timestamp').forEach(function(element) {
                 const utcTimestamp = element.getAttribute('data-timestamp');
                 if (utcTimestamp) {
-                    // Show loading state
-                    element.textContent = 'Converting...';
-                    
                     try {
                         const date = new Date(utcTimestamp);
-                        
-                        // Format date as MM/DD/YYYY
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const year = date.getFullYear();
-                        
-                        // Format time with timezone
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const minutes = String(date.getMinutes()).padStart(2, '0');
-                        const seconds = String(date.getSeconds()).padStart(2, '0');
-                        
-                        // Get timezone offset
-                        const timezoneOffset = -date.getTimezoneOffset();
-                        const timezoneHours = Math.floor(Math.abs(timezoneOffset) / 60);
-                        const timezoneMinutes = Math.abs(timezoneOffset) % 60;
-                        const timezoneSign = timezoneOffset >= 0 ? '+' : '-';
-                        const timezoneString = `${timezoneSign}${String(timezoneHours).padStart(2, '0')}:${String(timezoneMinutes).padStart(2, '0')}`;
-                        
-                        // Combine date and time with timezone
-                        element.textContent = `${month}/${day}/${year} ${hours}:${minutes}:${seconds} (UTC${timezoneString})`;
+                        const options = {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false,
+                            timeZoneName: 'short'
+                        };
+                        element.textContent = date.toLocaleString(undefined, options);
                     } catch (error) {
                         console.error('Error converting timestamp:', error);
                         element.textContent = 'Error converting time';
@@ -210,39 +276,8 @@
             });
         });
     </script>
-    <script>
-        function dismissModal(element) {
-            const modalInstance = bootstrap.Modal.getInstance(element);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
-        }
-    </script>
-    <script>
-        // Function to show the global delete modal
-        function showDeleteModal(noteId, noteTitle) {
-            const deleteForm = document.getElementById('globalDeleteForm');
-            const deleteNoteTitle = document.getElementById('deleteNoteTitle');
-            
-            deleteForm.action = `/notes/delete/${noteId}`;
-            deleteNoteTitle.textContent = `"${noteTitle}"`;
-            
-            const globalDeleteModal = new bootstrap.Modal(document.getElementById('globalDeleteModal'));
-            globalDeleteModal.show();
-        }
 
-        // Ensure the modal dismisses on form submission
-        document.getElementById('globalDeleteForm').addEventListener('submit', function() {
-            const modalElement = document.getElementById('globalDeleteModal');
-            const modalInstance = bootstrap.Modal.getInstance(modalElement);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
-        });
-    </script>
-    {% block scripts %}{% endblock %}
-
-    <!-- Global Delete Confirmation Modal -->
+    <!-- Global Delete Modal -->
     <div class="modal fade" id="globalDeleteModal" tabindex="-1" aria-labelledby="globalDeleteModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark-subtle text-emphasis-dark border border-secondary">

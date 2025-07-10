@@ -1,8 +1,112 @@
 {% extends "base.html" %}
 
 {% block content %}
+<<<<<<< HEAD
 <!-- Quick Start Guide (Redesigned) -->
 <section class="quick-start-section py-5">
+=======
+<div class="container mt-5 position-relative">
+    <!-- Theme Toggle Button -->
+    <button class="btn btn-outline-secondary theme-switch" onclick="toggleTheme()" title="Toggle Dark Mode">
+        <i class="bi bi-moon-fill"></i>
+    </button>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-15">
+            <div class="card p-4 animate__animated animate__fadeIn">
+                <h1 class="animate__animated animate__fadeInDown">
+                    <i class="bi bi-diagram-3-fill me-2"></i>
+                    NetMaster Subnet Calculator
+                </h1>
+
+                {% if error %}
+                <div class="alert alert-danger animate__animated animate__fadeIn">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} animate__animated animate__fadeIn">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <form id="subnetForm" class="mb-4 animate__animated animate__fadeIn">
+                    <input type="hidden" name="csrf_token" id="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="network_ip" class="form-label">Network IP/CIDR</label>
+                        <input type="text" class="form-control" id="network_ip" name="network_ip" 
+                               placeholder="e.g., 192.168.1.0/24" value="{{ network_ip }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Do you want to create a VLAN network from this address?</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="vlan_choice" id="vlan_yes" value="yes">
+                                <label class="form-check-label" for="vlan_yes">Yes</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="vlan_choice" id="vlan_no" value="no" checked>
+                                <label class="form-check-label" for="vlan_no">No</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="vlan_section" style="display:none;">
+                        <div class="mb-3">
+                            <label for="num_vlans" class="form-label">Number of VLANs</label>
+                            <input type="number" class="form-control" id="num_vlans" name="num_vlans" min="1" max="64">
+                        </div>
+                        <div id="vlan_details"></div>
+                    </div>
+                    <div id="host_section" style="display:block;">
+                        <div class="mb-3">
+                            <label for="num_hosts" class="form-label">Number of Hosts</label>
+                            <input type="number" class="form-control" id="num_hosts" name="num_hosts" min="1" max="4094">
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-calculator me-2"></i>Calculate Subnets
+                        </button>
+                        <button type="button" id="downloadCsvBtn" class="btn btn-success ms-2">
+                            <i class="bi bi-download me-2"></i>Download as CSV
+                        </button>
+                        <button type="button" id="clearBtn" class="btn btn-outline-secondary ms-2">
+                            <i class="bi bi-x-circle me-2"></i>Clear
+                        </button>
+                    </div>
+                </form>
+
+                <div id="resultsSection" class="table-responsive mt-4" style="display: none;">
+                    <div class="progress mb-3">
+                        <div id="calculationProgress" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: 0%"
+                             aria-valuenow="0" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            0%
+                        </div>
+                    </div>
+                    <table class="table table-striped table-hover">
+                        <thead id="resultsTableHead">
+                            <!-- Dynamically filled -->
+                        </thead>
+                        <tbody id="resultsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="footer mt-5 py-4">
+>>>>>>> 45ab9c39cce14fa69cdc7ea60e97a17645a5064a
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8">
@@ -45,6 +149,39 @@
                             </div>
                         </div>
                     </div>
+<<<<<<< HEAD
+=======
+                    <div class="col-md-4">
+                        <div class="feature-item">
+                            <i class="bi bi-hash feature-icon"></i>
+                            <h5>VLAN Support</h5>
+                            <p>Assign VLAN IDs to each network segment (1-4094)</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-item">
+                            <i class="bi bi-table feature-icon"></i>
+                            <h5>Detailed Results</h5>
+                            <p>View network ID, subnet mask, broadcast IP, and more</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <p class="text-muted">Enter a network IP in CIDR notation (e.g., 192.168.1.0/24) and specify the number of segments needed. The calculator will automatically determine the optimal subnet configuration.</p>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <div class="d-flex justify-content-center align-items-center">
+                        <a href="{{ url_for('about') }}" class="text-decoration-none me-3">
+                            <i class="bi bi-info-circle me-1"></i>About Us
+                        </a>
+                        <span class="text-muted">|</span>
+                        <span class="text-muted ms-3">
+                            <i class="bi bi-c-circle me-1"></i>KLASIK 2025™
+                        </span>
+                    </div>
+>>>>>>> 45ab9c39cce14fa69cdc7ea60e97a17645a5064a
                 </div>
             </div>
         </div>
@@ -182,7 +319,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/canvas-network-animation.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Helper function to validate IP/CIDR format
 function validateIpCidr(ipCidr) {
@@ -349,7 +486,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (data.progress === 100) {
                         clearInterval(intervalId);
                         updateResultsTable(data.results, vlanMode);
-                        progressBarContainer.style.display = 'none';
+                        // Only hide the progress bar after results are rendered and not empty
+                        if (data.results && data.results.length > 0) {
+                            progressBarContainer.style.display = 'none';
+                        }
                     } else if (data.results && data.results.length > 0) {
                         updateResultsTable(data.results, vlanMode);
                     }

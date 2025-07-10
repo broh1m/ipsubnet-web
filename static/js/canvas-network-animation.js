@@ -1,24 +1,28 @@
 class NetworkAnimation {
     constructor() {
+        console.log('NetworkAnimation constructor called');
         this.canvas = document.createElement('canvas');
         this.ctx = this.canvas.getContext('2d');
         this.nodes = [];
         this.connections = [];
         this.mouse = { x: 0, y: 0 };
         this.isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        this.animationFrameId = null;
 
         this.init();
     }
 
     init() {
+        console.log('NetworkAnimation init called');
         // Set canvas as background
         this.canvas.style.position = 'fixed';
         this.canvas.style.top = '0';
         this.canvas.style.left = '0';
         this.canvas.style.width = '100%';
         this.canvas.style.height = '100%';
-        this.canvas.style.zIndex = '-1';
-        this.canvas.style.opacity = '0.7';
+        this.canvas.style.zIndex = '-1'; // Revert z-index
+        this.canvas.style.opacity = '0.7'; // Revert opacity
+        // this.canvas.style.backgroundColor = 'red'; // Remove this debugging line
         document.body.prepend(this.canvas);
 
         // Set canvas size
@@ -39,12 +43,14 @@ class NetworkAnimation {
     }
 
     resize() {
+        console.log('Resizing canvas to:', window.innerWidth, window.innerHeight);
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
     }
 
     createNodes() {
         const nodeCount = Math.floor((window.innerWidth * window.innerHeight) / 15000);
+        console.log('Creating', nodeCount, 'nodes');
         for (let i = 0; i < nodeCount; i++) {
             this.nodes.push({
                 x: Math.random() * this.canvas.width,
@@ -119,6 +125,11 @@ class NetworkAnimation {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // Removed: TEMP: Draw a red rectangle to see if the canvas is visible at all
+        // console.log('Drawing temporary red rectangle');
+        // this.ctx.fillStyle = 'red';
+        // this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
         // Update and draw nodes
         this.nodes.forEach(node => {
             this.updateNode(node);
@@ -138,31 +149,59 @@ class NetworkAnimation {
         }
 
         // Continue animation
-        requestAnimationFrame(() => this.animate());
+        this.animationFrameId = requestAnimationFrame(() => this.animate());
     }
 
     updateTheme(isDark) {
         this.isDarkMode = isDark;
     }
+
+    destroy() {
+        console.log('Destroying animation');
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        if (this.canvas && this.canvas.parentNode) {
+            this.canvas.parentNode.removeChild(this.canvas);
+        }
+    }
 }
 
 // Initialize animation when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    const networkAnimation = new NetworkAnimation();
+let networkAnimation = null;
 
-    // Update animation theme when dark mode is toggled
-    const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'data-bs-theme') {
-                networkAnimation.updateTheme(
-                    document.documentElement.getAttribute('data-bs-theme') === 'dark'
-                );
-            }
-        });
-    });
+function initAnimation() {
+    console.log('Initializing animation');
+    if (networkAnimation) {
+        console.log('Destroying existing animation');
+        networkAnimation.destroy();
+    }
+    networkAnimation = new NetworkAnimation();
+}
 
-    observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['data-bs-theme']
+// Initialize on DOMContentLoaded
+console.log('Current document readyState:', document.readyState);
+if (document.readyState === 'loading') {
+    console.log('Adding DOMContentLoaded listener');
+    document.addEventListener('DOMContentLoaded', initAnimation);
+} else {
+    console.log('Document already loaded, initializing immediately');
+    initAnimation();
+}
+
+// Update animation theme when dark mode is toggled
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-bs-theme' && networkAnimation) {
+            console.log('Theme changed, updating animation');
+            networkAnimation.updateTheme(
+                document.documentElement.getAttribute('data-bs-theme') === 'dark'
+            );
+        }
     });
+});
+
+observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-bs-theme']
 }); 

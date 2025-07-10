@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Alert Styles */
 .alert {
     border-radius: 8px;
@@ -98,4 +99,23 @@
         transform: translateY(-100%);
         opacity: 0;
     }
+=======
+/* Alert styling */
+.alert-error {
+    background-color: #2c1f1f;
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+}
+
+.alert-success {
+    background-color: #1f2c1f;
+    border: 1px solid #6bff6b;
+    color: #6bff6b;
+}
+
+.alert-info {
+    background-color: #1f1f2c;
+    border: 1px solid #6b6bff;
+    color: #6b6bff;
+>>>>>>> 45ab9c39cce14fa69cdc7ea60e97a17645a5064a
 } 
